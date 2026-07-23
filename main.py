@@ -5,6 +5,7 @@ from auth import crear_token
 from auth import crear_token, obtener_usuario_actual
 from fastapi.security import OAuth2PasswordRequestForm
 from database import engine, Base, SessionLocal
+from sqlalchemy import func
 import models
 import schemas
 
@@ -157,3 +158,19 @@ def eliminar_postulacion(
     db.commit()
 
     return {"mensaje": "Postulación eliminada"}
+
+@app.get("/postulaciones/stats/resumen")
+def estadisticas_postulaciones(
+    db: Session = Depends(get_db),
+    email_actual: str = Depends(obtener_usuario_actual)
+):
+    usuario = db.query(models.Usuario).filter(models.Usuario.email == email_actual).first()
+
+    resultados = (
+        db.query(models.Postulacion.estado, func.count(models.Postulacion.id))
+        .filter(models.Postulacion.usuario_id == usuario.id)
+        .group_by(models.Postulacion.estado)
+        .all()
+    )
+
+    return {estado: cantidad for estado, cantidad in resultados}
