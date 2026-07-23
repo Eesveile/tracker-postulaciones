@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
+from auth import crear_token
 
 from database import engine, Base, SessionLocal
 import models
@@ -44,3 +45,14 @@ def crear_usuario(usuario: schemas.UsuarioCrear, db: Session = Depends(get_db)):
 @app.get("/usuarios", response_model=list[schemas.UsuarioRespuesta])
 def listar_usuarios(db: Session = Depends(get_db)):
     return db.query(models.Usuario).all()
+
+@app.post("/login")
+def login(datos: schemas.UsuarioLogin, db: Session = Depends(get_db)):
+    usuario = db.query(models.Usuario).filter(models.Usuario.email == datos.email).first()
+
+    if not usuario or not pwd_context.verify(datos.password, usuario.password_hash):
+        raise HTTPException(status_code=401, detail="Email o contraseña incorrectos")
+
+    token = crear_token({"sub": usuario.email})
+
+    return {"access_token": token, "token_type": "bearer"}

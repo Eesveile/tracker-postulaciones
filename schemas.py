@@ -12,3 +12,7 @@ class UsuarioRespuesta(BaseModel):
 
     class Config:
         from_attributes = True
+
+class UsuarioLogin(BaseModel):
+    email: str
+    password: str
