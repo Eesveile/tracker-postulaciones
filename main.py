@@ -91,3 +91,69 @@ def listar_postulaciones(
         query = query.filter(models.Postulacion.estado == estado)
 
     return query.all()
+
+@app.get("/postulaciones/{postulacion_id}", response_model=schemas.PostulacionRespuesta)
+def ver_postulacion(
+    postulacion_id: int,
+    db: Session = Depends(get_db),
+    email_actual: str = Depends(obtener_usuario_actual)
+):
+    usuario = db.query(models.Usuario).filter(models.Usuario.email == email_actual).first()
+
+    postulacion = db.query(models.Postulacion).filter(
+        models.Postulacion.id == postulacion_id,
+        models.Postulacion.usuario_id == usuario.id
+    ).first()
+
+    if not postulacion:
+        raise HTTPException(status_code=404, detail="Postulación no encontrada")
+
+    return postulacion
+
+
+@app.put("/postulaciones/{postulacion_id}", response_model=schemas.PostulacionRespuesta)
+def actualizar_postulacion(
+    postulacion_id: int,
+    cambios: schemas.PostulacionActualizar,
+    db: Session = Depends(get_db),
+    email_actual: str = Depends(obtener_usuario_actual)
+):
+    usuario = db.query(models.Usuario).filter(models.Usuario.email == email_actual).first()
+
+    postulacion = db.query(models.Postulacion).filter(
+        models.Postulacion.id == postulacion_id,
+        models.Postulacion.usuario_id == usuario.id
+    ).first()
+
+    if not postulacion:
+        raise HTTPException(status_code=404, detail="Postulación no encontrada")
+
+    for campo, valor in cambios.dict(exclude_unset=True).items():
+        setattr(postulacion, campo, valor)
+
+    db.commit()
+    db.refresh(postulacion)
+
+    return postulacion
+
+
+@app.delete("/postulaciones/{postulacion_id}")
+def eliminar_postulacion(
+    postulacion_id: int,
+    db: Session = Depends(get_db),
+    email_actual: str = Depends(obtener_usuario_actual)
+):
+    usuario = db.query(models.Usuario).filter(models.Usuario.email == email_actual).first()
+
+    postulacion = db.query(models.Postulacion).filter(
+        models.Postulacion.id == postulacion_id,
+        models.Postulacion.usuario_id == usuario.id
+    ).first()
+
+    if not postulacion:
+        raise HTTPException(status_code=404, detail="Postulación no encontrada")
+
+    db.delete(postulacion)
+    db.commit()
+
+    return {"mensaje": "Postulación eliminada"}
