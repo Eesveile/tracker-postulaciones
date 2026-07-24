@@ -20,10 +20,26 @@
         button {
             padding: 10px 20px;
             cursor: pointer;
+            margin-bottom: 10px;
         }
         #mensaje {
             margin-top: 10px;
             font-weight: bold;
+        }
+        .postulacion {
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .oculto {
+            display: none;
+        }
+        #form-nueva {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
         }
     </style>
 </head>
@@ -38,8 +54,28 @@
         <p id="mensaje"></p>
     </div>
 
+    <div id="seccion-postulaciones" class="oculto">
+        <h2>Mis postulaciones</h2>
+        <button onclick="cerrarSesion()">Cerrar sesión</button>
+
+        <div id="form-nueva">
+            <h3>Agregar nueva postulación</h3>
+            <input type="text" id="nueva-empresa" placeholder="Empresa">
+            <input type="text" id="nueva-cargo" placeholder="Cargo">
+            <input type="date" id="nueva-fecha">
+            <button onclick="crearPostulacion()">Agregar</button>
+            <p id="mensaje-crear"></p>
+        </div>
+
+        <div id="lista-postulaciones">Cargando...</div>
+    </div>
+
     <script>
         const API_URL = "https://tracker-postulaciones.onrender.com";
+
+        function obtenerToken() {
+            return localStorage.getItem("token");
+        }
 
         async function iniciarSesion() {
             const email = document.getElementById("login-email").value;
@@ -66,12 +102,106 @@
 
                 const datos = await respuesta.json();
                 localStorage.setItem("token", datos.access_token);
-                mensaje.textContent = "¡Sesión iniciada correctamente!";
+                mostrarPostulaciones();
 
             } catch (error) {
                 mensaje.textContent = "Error de conexión con el servidor";
                 console.error(error);
             }
+        }
+
+        function cerrarSesion() {
+            localStorage.removeItem("token");
+            document.getElementById("seccion-postulaciones").classList.add("oculto");
+            document.getElementById("seccion-login").classList.remove("oculto");
+            document.getElementById("mensaje").textContent = "";
+        }
+
+        async function crearPostulacion() {
+            const empresa = document.getElementById("nueva-empresa").value;
+            const cargo = document.getElementById("nueva-cargo").value;
+            const fecha = document.getElementById("nueva-fecha").value;
+            const mensajeCrear = document.getElementById("mensaje-crear");
+
+            if (!empresa || !cargo || !fecha) {
+                mensajeCrear.textContent = "Completa todos los campos";
+                return;
+            }
+
+            mensajeCrear.textContent = "Guardando...";
+
+            try {
+                const respuesta = await fetch(`${API_URL}/postulaciones`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${obtenerToken()}`
+                    },
+                    body: JSON.stringify({
+                        empresa: empresa,
+                        cargo: cargo,
+                        fecha_postulacion: fecha
+                    })
+                });
+
+                if (!respuesta.ok) {
+                    mensajeCrear.textContent = "No se pudo guardar la postulación";
+                    return;
+                }
+
+                document.getElementById("nueva-empresa").value = "";
+                document.getElementById("nueva-cargo").value = "";
+                document.getElementById("nueva-fecha").value = "";
+                mensajeCrear.textContent = "";
+
+                mostrarPostulaciones();
+
+            } catch (error) {
+                mensajeCrear.textContent = "Error de conexión con el servidor";
+                console.error(error);
+            }
+        }
+
+        async function mostrarPostulaciones() {
+            document.getElementById("seccion-login").classList.add("oculto");
+            document.getElementById("seccion-postulaciones").classList.remove("oculto");
+
+            const contenedor = document.getElementById("lista-postulaciones");
+            contenedor.textContent = "Cargando...";
+
+            try {
+                const respuesta = await fetch(`${API_URL}/postulaciones`, {
+                    headers: { "Authorization": `Bearer ${obtenerToken()}` }
+                });
+
+                if (!respuesta.ok) {
+                    contenedor.textContent = "No se pudieron cargar las postulaciones";
+                    return;
+                }
+
+                const postulaciones = await respuesta.json();
+
+                if (postulaciones.length === 0) {
+                    contenedor.textContent = "Todavía no tienes postulaciones registradas.";
+                    return;
+                }
+
+                contenedor.innerHTML = postulaciones.map(p => `
+                    <div class="postulacion">
+                        <strong>${p.empresa}</strong> — ${p.cargo}<br>
+                        Estado: ${p.estado}<br>
+                        Fecha: ${p.fecha_postulacion}
+                    </div>
+                `).join("");
+
+            } catch (error) {
+                contenedor.textContent = "Error de conexión con el servidor";
+                console.error(error);
+            }
+        }
+
+        if (obtenerToken()) {
+            mostrarPostulaciones();
         }
     </script>
 </body>
