@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Tracker de Postulaciones</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+        input {
+            display: block;
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+        #mensaje {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Tracker de Postulaciones</h1>
+
+    <div id="seccion-login">
+        <h2>Iniciar sesión</h2>
+        <input type="email" id="login-email" placeholder="Email">
+        <input type="password" id="login-password" placeholder="Contraseña">
+        <button onclick="iniciarSesion()">Ingresar</button>
+        <p id="mensaje"></p>
+    </div>
+
+    <script>
+        const API_URL = "https://tracker-postulaciones.onrender.com";
+
+        async function iniciarSesion() {
+            const email = document.getElementById("login-email").value;
+            const password = document.getElementById("login-password").value;
+            const mensaje = document.getElementById("mensaje");
+
+            mensaje.textContent = "Ingresando...";
+
+            const formData = new URLSearchParams();
+            formData.append("username", email);
+            formData.append("password", password);
+
+            try {
+                const respuesta = await fetch(`${API_URL}/login`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: formData
+                });
+
+                if (!respuesta.ok) {
+                    mensaje.textContent = "Email o contraseña incorrectos";
+                    return;
+                }
+
+                const datos = await respuesta.json();
+                localStorage.setItem("token", datos.access_token);
+                mensaje.textContent = "¡Sesión iniciada correctamente!";
+
+            } catch (error) {
+                mensaje.textContent = "Error de conexión con el servidor";
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>
