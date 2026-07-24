@@ -1,5 +1,9 @@
 # Tracker de Postulaciones
 
+🔗 **API en producción:** https://tracker-postulaciones.onrender.com/docs
+
+*(Nota: el plan gratuito de Render "duerme" el servicio tras un rato de inactividad — la primera carga puede tardar ~30-50 segundos)*
+
 API REST para gestionar postulaciones a prácticas profesionales y trabajos, construida como proyecto de preparación para práctica profesional.
 
 ## Funcionalidades
